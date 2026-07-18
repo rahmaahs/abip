@@ -5,6 +5,7 @@ from pathlib import Path
 
 from abip.ingestion.video_reader import VideoReader
 from abip.ingestion.video_writer import VideoWriter
+from abip.visualization.annotator import draw_basic_overlay
 
 
 def parse_args() -> argparse.Namespace:
@@ -20,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("outputs/videos/copy.mp4"),
+        default=Path("outputs/videos/overlay.mp4"),
         help="Path to the output video file",
     )
     return parser.parse_args()
@@ -44,17 +45,22 @@ def main() -> None:
         print(f"  Height: {metadata.height}")
 
         with VideoWriter(args.output, metadata) as writer:
-            print("\nCopying frames...")
+            print("\nAnnotating frames...")
             frame_count = 0
 
             for index, frame in reader.frames():
-                writer.write(frame)
+                annotated_frame = draw_basic_overlay(
+                    frame=frame,
+                    frame_index=index,
+                    total_frames=metadata.frame_count,
+                )
+                writer.write(annotated_frame)
                 frame_count += 1
 
                 if index < 3:
-                    print(f"  Frame {index}: shape={frame.shape}")
+                    print(f"  Frame {index}: shape={annotated_frame.shape}")
 
-            print(f"\nWrote {frame_count} frames to {args.output}")
+            print(f"\nWrote {frame_count} annotated frames to {args.output}")
 
 
 if __name__ == "__main__":
