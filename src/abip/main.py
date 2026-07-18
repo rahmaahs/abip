@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from abip.ingestion.video_reader import VideoReader
+from abip.ingestion.video_writer import VideoWriter
 
 
 def parse_args() -> argparse.Namespace:
@@ -16,6 +17,12 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Path to a cycling video file",
     )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/videos/copy.mp4"),
+        help="Path to the output video file",
+    )
     return parser.parse_args()
 
 
@@ -23,7 +30,8 @@ def main() -> None:
     args = parse_args()
 
     print("ABIP starting")
-    print(f"Video: {args.video}")
+    print(f"Input video: {args.video}")
+    print(f"Output video: {args.output}")
 
     with VideoReader(args.video) as reader:
         metadata = reader.metadata()
@@ -35,11 +43,18 @@ def main() -> None:
         print(f"  Width: {metadata.width}")
         print(f"  Height: {metadata.height}")
 
-        print("\nFirst 3 frames:")
-        for index, frame in reader.frames():
-            print(f"  Frame {index}: shape={frame.shape}")
-            if index >= 2:
-                break
+        with VideoWriter(args.output, metadata) as writer:
+            print("\nCopying frames...")
+            frame_count = 0
+
+            for index, frame in reader.frames():
+                writer.write(frame)
+                frame_count += 1
+
+                if index < 3:
+                    print(f"  Frame {index}: shape={frame.shape}")
+
+            print(f"\nWrote {frame_count} frames to {args.output}")
 
 
 if __name__ == "__main__":
