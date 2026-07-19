@@ -5,7 +5,7 @@ from pathlib import Path
 
 from abip.ingestion.video_reader import VideoReader
 from abip.ingestion.video_writer import VideoWriter
-from abip.perception.fake_detector import FakeDetector
+from abip.perception.yolo_detector import YOLODetector
 from abip.visualization.annotator import draw_basic_overlay, draw_detections
 
 
@@ -22,8 +22,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("outputs/videos/detections.mp4"),
+        default=Path("outputs/videos/yolo.mp4"),
         help="Path to the output video file",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="yolov8n.pt",
+        help="YOLO model name or path",
+    )
+    parser.add_argument(
+        "--confidence",
+        type=float,
+        default=0.35,
+        help="Minimum detection confidence",
     )
     return parser.parse_args()
 
@@ -34,8 +46,14 @@ def main() -> None:
     print("ABIP starting")
     print(f"Input video: {args.video}")
     print(f"Output video: {args.output}")
+    print(f"YOLO model: {args.model}")
+    print(f"Confidence threshold: {args.confidence}")
 
-    detector = FakeDetector()
+    detector = YOLODetector(
+        model_name=args.model,
+        confidence_threshold=args.confidence,
+        target_classes=("person", "car", "bicycle"),
+    )
 
     with VideoReader(args.video) as reader:
         metadata = reader.metadata()
@@ -48,7 +66,7 @@ def main() -> None:
         print(f"  Height: {metadata.height}")
 
         with VideoWriter(args.output, metadata) as writer:
-            print("\nRunning fake detection...")
+            print("\nRunning YOLO detection...")
             frame_count = 0
 
             for index, frame in reader.frames():
@@ -70,7 +88,7 @@ def main() -> None:
                 if index < 3:
                     print(
                         f"  Frame {index}: "
-                        f"{len(frame_detections.detections)} fake detections"
+                        f"{len(frame_detections.detections)} detections"
                     )
 
             print(f"\nWrote {frame_count} annotated frames to {args.output}")
