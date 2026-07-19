@@ -5,6 +5,7 @@ from pathlib import Path
 
 from abip.ingestion.video_reader import VideoReader
 from abip.ingestion.video_writer import VideoWriter
+from abip.scene.scene_builder import SceneBuilder
 from abip.tracking.yolo_tracker import YOLOTracker
 from abip.visualization.annotator import draw_basic_overlay, draw_tracks
 
@@ -22,7 +23,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("outputs/videos/tracks.mp4"),
+        default=Path("outputs/videos/scene.mp4"),
         help="Path to the output video file",
     )
     parser.add_argument(
@@ -65,12 +66,18 @@ def main() -> None:
         print(f"  Width: {metadata.width}")
         print(f"  Height: {metadata.height}")
 
+        scene_builder = SceneBuilder(
+            frame_width=metadata.width,
+            frame_height=metadata.height,
+        )
+
         with VideoWriter(args.output, metadata) as writer:
-            print("\nRunning YOLO tracking...")
+            print("\nRunning YOLO tracking + scene understanding...")
             frame_count = 0
 
             for index, frame in reader.frames():
                 frame_tracks = tracker.track(frame_index=index, frame=frame)
+                scene_state = scene_builder.build(frame_tracks)
 
                 annotated_frame = draw_basic_overlay(
                     frame=frame,
@@ -86,10 +93,7 @@ def main() -> None:
                 frame_count += 1
 
                 if index < 3:
-                    print(
-                        f"  Frame {index}: "
-                        f"{len(frame_tracks.tracks)} tracked objects"
-                    )
+                    print(f"  Frame {index}: {scene_state.summary}")
 
             print(f"\nWrote {frame_count} annotated frames to {args.output}")
 
