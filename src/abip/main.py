@@ -5,9 +5,14 @@ from pathlib import Path
 
 from abip.ingestion.video_reader import VideoReader
 from abip.ingestion.video_writer import VideoWriter
+from abip.risk.scorer import RiskScorer
 from abip.scene.scene_builder import SceneBuilder
 from abip.tracking.yolo_tracker import YOLOTracker
-from abip.visualization.annotator import draw_basic_overlay, draw_tracks
+from abip.visualization.annotator import (
+    draw_basic_overlay,
+    draw_risk_overlay,
+    draw_tracks,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -23,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("outputs/videos/scene.mp4"),
+        default=Path("outputs/videos/risk.mp4"),
         help="Path to the output video file",
     )
     parser.add_argument(
@@ -70,14 +75,16 @@ def main() -> None:
             frame_width=metadata.width,
             frame_height=metadata.height,
         )
+        risk_scorer = RiskScorer()
 
         with VideoWriter(args.output, metadata) as writer:
-            print("\nRunning YOLO tracking + scene understanding...")
+            print("\nRunning YOLO tracking + scene understanding + risk scoring...")
             frame_count = 0
 
             for index, frame in reader.frames():
                 frame_tracks = tracker.track(frame_index=index, frame=frame)
                 scene_state = scene_builder.build(frame_tracks)
+                risk_state = risk_scorer.score(scene_state)
 
                 annotated_frame = draw_basic_overlay(
                     frame=frame,
@@ -88,12 +95,20 @@ def main() -> None:
                     frame=annotated_frame,
                     frame_tracks=frame_tracks,
                 )
+                annotated_frame = draw_risk_overlay(
+                    frame=annotated_frame,
+                    risk_state=risk_state,
+                )
 
                 writer.write(annotated_frame)
                 frame_count += 1
 
                 if index < 3:
-                    print(f"  Frame {index}: {scene_state.summary}")
+                    print(
+                        f"  Frame {index}: "
+                        f"{scene_state.summary} | "
+                        f"risk={risk_state.level} ({risk_state.score:.2f})"
+                    )
 
             print(f"\nWrote {frame_count} annotated frames to {args.output}")
 
