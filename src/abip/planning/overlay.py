@@ -4,7 +4,7 @@ from typing import Any
 
 import cv2
 
-from abip.planning.corridor import CorridorState
+from abip.planning.free_space import FreeSpaceState
 from abip.planning.state import PlanState
 
 
@@ -54,24 +54,20 @@ def draw_plan_overlay(frame: Any, plan_state: PlanState) -> Any:
     return frame
 
 
-def draw_corridor_overlay(frame: Any, corridor_state: CorridorState) -> Any:
+def draw_free_space_overlay(frame: Any, free_space_state: FreeSpaceState) -> Any:
     height, width = frame.shape[:2]
 
-    box_width = 520
-    box_height = 110
-    margin = 20
-
+    box_width = 740
+    box_height = 130
     x1 = width // 2 - box_width // 2
-    y1 = 20
+    y1 = height - box_height - 20
     x2 = x1 + box_width
     y2 = y1 + box_height
 
     color = (0, 255, 0)
-    if corridor_state.corridor_pressure == "light":
-        color = (0, 255, 255)
-    elif corridor_state.corridor_pressure == "moderate":
+    if not free_space_state.right_open:
         color = (0, 165, 255)
-    elif corridor_state.corridor_pressure == "heavy":
+    if not free_space_state.path_clear:
         color = (0, 0, 255)
 
     cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness=-1)
@@ -79,7 +75,7 @@ def draw_corridor_overlay(frame: Any, corridor_state: CorridorState) -> Any:
 
     cv2.putText(
         frame,
-        f"CORRIDOR: {corridor_state.corridor_zone.upper()}",
+        f"FREE SPACE: {free_space_state.preferred_side.upper()}",
         (x1 + 15, y1 + 35),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.8,
@@ -90,8 +86,19 @@ def draw_corridor_overlay(frame: Any, corridor_state: CorridorState) -> Any:
 
     cv2.putText(
         frame,
-        f"Pressure: {corridor_state.corridor_pressure.upper()} | Clear: {str(corridor_state.corridor_clear).upper()}",
+        f"L:{free_space_state.left_pressure:.2f}  C:{free_space_state.center_pressure:.2f}  R:{free_space_state.right_pressure:.2f}",
         (x1 + 15, y1 + 75),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (0, 0, 0),
+        2,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        frame,
+        f"Path clear: {str(free_space_state.path_clear).upper()}",
+        (x1 + 15, y1 + 110),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.65,
         (0, 0, 0),
