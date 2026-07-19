@@ -5,7 +5,8 @@ from pathlib import Path
 
 from abip.ingestion.video_reader import VideoReader
 from abip.ingestion.video_writer import VideoWriter
-from abip.planning.overlay import draw_plan_overlay
+from abip.planning.corridor import CorridorAnalyzer
+from abip.planning.overlay import draw_corridor_overlay, draw_plan_overlay
 from abip.planning.planner import BehaviorPlanner
 from abip.risk.scorer import RiskScorer
 from abip.scene.scene_builder import SceneBuilder
@@ -30,7 +31,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("outputs/videos/plan.mp4"),
+        default=Path("outputs/videos/corridor.mp4"),
         help="Path to the output video file",
     )
     parser.add_argument(
@@ -77,18 +78,20 @@ def main() -> None:
             frame_width=metadata.width,
             frame_height=metadata.height,
         )
+        corridor_analyzer = CorridorAnalyzer()
         risk_scorer = RiskScorer()
         planner = BehaviorPlanner()
 
         with VideoWriter(args.output, metadata) as writer:
-            print("\nRunning tracking + scene understanding + risk scoring + planning...")
+            print("\nRunning tracking + scene understanding + corridor planning...")
             frame_count = 0
 
             for index, frame in reader.frames():
                 frame_tracks = tracker.track(frame_index=index, frame=frame)
                 scene_state = scene_builder.build(frame_tracks)
+                corridor_state = corridor_analyzer.analyze(scene_state)
                 risk_state = risk_scorer.score(scene_state)
-                plan_state = planner.plan(scene_state, risk_state)
+                plan_state = planner.plan(scene_state, risk_state, corridor_state)
 
                 annotated_frame = draw_basic_overlay(
                     frame=frame,
@@ -103,6 +106,10 @@ def main() -> None:
                     frame=annotated_frame,
                     risk_state=risk_state,
                 )
+                annotated_frame = draw_corridor_overlay(
+                    frame=annotated_frame,
+                    corridor_state=corridor_state,
+                )
                 annotated_frame = draw_plan_overlay(
                     frame=annotated_frame,
                     plan_state=plan_state,
@@ -115,6 +122,7 @@ def main() -> None:
                     print(
                         f"  Frame {index}: "
                         f"{scene_state.summary} | "
+                        f"corridor={corridor_state.corridor_pressure}/{corridor_state.corridor_clear} | "
                         f"risk={risk_state.level} ({risk_state.score:.2f}) | "
                         f"plan={plan_state.maneuver} ({plan_state.urgency})"
                     )
