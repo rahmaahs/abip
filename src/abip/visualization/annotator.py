@@ -99,3 +99,47 @@ def draw_detections(frame: Any, frame_detections: FrameDetections) -> Any:
         )
 
     return frame
+
+
+from abip.tracking.tracks import FrameTracks
+
+
+def draw_tracks(frame: Any, frame_tracks: FrameTracks) -> Any:
+    """
+    Draw tracked object boxes and IDs on a frame.
+    """
+    for track in frame_tracks.tracks:
+        box = track.box
+
+        cv2.rectangle(
+            frame,
+            (box.x1, box.y1),
+            (box.x2, box.y2),
+            (255, 0, 0),
+            thickness=2,
+        )
+
+        label = f"ID {track.track_id}: {track.class_name} {track.confidence:.2f}"
+        text_x = box.x1
+        text_y = max(20, box.y1 - 10)
+
+        cv2.rectangle(
+            frame,
+            (text_x, text_y - 22),
+            (text_x + 260, text_y + 5),
+            (255, 0, 0),
+            thickness=-1,
+        )
+
+        cv2.putText(
+            frame,
+            label,
+            (text_x + 5, text_y - 3),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.55,
+            (255, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+
+    return frame

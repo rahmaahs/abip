@@ -5,8 +5,8 @@ from pathlib import Path
 
 from abip.ingestion.video_reader import VideoReader
 from abip.ingestion.video_writer import VideoWriter
-from abip.perception.yolo_detector import YOLODetector
-from abip.visualization.annotator import draw_basic_overlay, draw_detections
+from abip.tracking.yolo_tracker import YOLOTracker
+from abip.visualization.annotator import draw_basic_overlay, draw_tracks
 
 
 def parse_args() -> argparse.Namespace:
@@ -22,7 +22,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("outputs/videos/yolo.mp4"),
+        default=Path("outputs/videos/tracks.mp4"),
         help="Path to the output video file",
     )
     parser.add_argument(
@@ -49,7 +49,7 @@ def main() -> None:
     print(f"YOLO model: {args.model}")
     print(f"Confidence threshold: {args.confidence}")
 
-    detector = YOLODetector(
+    tracker = YOLOTracker(
         model_name=args.model,
         confidence_threshold=args.confidence,
         target_classes=("person", "car", "bicycle"),
@@ -66,20 +66,20 @@ def main() -> None:
         print(f"  Height: {metadata.height}")
 
         with VideoWriter(args.output, metadata) as writer:
-            print("\nRunning YOLO detection...")
+            print("\nRunning YOLO tracking...")
             frame_count = 0
 
             for index, frame in reader.frames():
-                frame_detections = detector.detect(frame_index=index, frame=frame)
+                frame_tracks = tracker.track(frame_index=index, frame=frame)
 
                 annotated_frame = draw_basic_overlay(
                     frame=frame,
                     frame_index=index,
                     total_frames=metadata.frame_count,
                 )
-                annotated_frame = draw_detections(
+                annotated_frame = draw_tracks(
                     frame=annotated_frame,
-                    frame_detections=frame_detections,
+                    frame_tracks=frame_tracks,
                 )
 
                 writer.write(annotated_frame)
@@ -88,7 +88,7 @@ def main() -> None:
                 if index < 3:
                     print(
                         f"  Frame {index}: "
-                        f"{len(frame_detections.detections)} detections"
+                        f"{len(frame_tracks.tracks)} tracked objects"
                     )
 
             print(f"\nWrote {frame_count} annotated frames to {args.output}")
