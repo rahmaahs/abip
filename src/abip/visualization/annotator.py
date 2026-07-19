@@ -199,3 +199,44 @@ def draw_risk_overlay(frame: Any, risk_state: RiskState) -> Any:
     )
 
     return frame
+
+
+from abip.decision.state import DecisionState
+
+def draw_decision_text(frame: Any, decision_state: DecisionState) -> Any:
+    """
+    Draw a compact decision note in the lower-right corner.
+    """
+    height, width = frame.shape[:2]
+
+    x1 = width - 540
+    y1 = height - 200
+    x2 = width - 20
+    y2 = height - 20
+
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 255), thickness=-1)
+    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), thickness=2)
+
+    cv2.putText(
+        frame,
+        f"Decision: {decision_state.action}",
+        (x1 + 15, y1 + 45),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (0, 0, 0),
+        2,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        frame,
+        f"Urgency: {decision_state.urgency}",
+        (x1 + 15, y1 + 85),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (0, 0, 0),
+        2,
+        cv2.LINE_AA,
+    )
+
+    return frame
