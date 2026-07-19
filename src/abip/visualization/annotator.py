@@ -143,3 +143,47 @@ def draw_tracks(frame: Any, frame_tracks: FrameTracks) -> Any:
         )
 
     return frame
+
+from abip.risk.state import RiskState
+
+
+def draw_risk_overlay(frame: Any, risk_state: RiskState) -> Any:
+    """
+    Draw a compact risk badge on the top-right of the frame.
+    """
+    x1, y1 = 1440, 20
+    x2, y2 = 1900, 120
+
+    color = (0, 255, 0)
+    if risk_state.level == "low":
+        color = (0, 255, 255)
+    elif risk_state.level == "medium":
+        color = (0, 165, 255)
+    elif risk_state.level == "high":
+        color = (0, 0, 255)
+
+    cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness=-1)
+
+    cv2.putText(
+        frame,
+        f"Risk: {risk_state.level.upper()}",
+        (x1 + 15, y1 + 35),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (0, 0, 0),
+        2,
+        cv2.LINE_AA,
+    )
+
+    cv2.putText(
+        frame,
+        f"Score: {risk_state.score:.2f}",
+        (x1 + 15, y1 + 70),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        (0, 0, 0),
+        2,
+        cv2.LINE_AA,
+    )
+
+    return frame
