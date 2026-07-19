@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from abip.decision.action_overlay import draw_decision_overlay
-from abip.decision.engine import DecisionEngine
 from abip.ingestion.video_reader import VideoReader
 from abip.ingestion.video_writer import VideoWriter
+from abip.planning.overlay import draw_plan_overlay
+from abip.planning.planner import BehaviorPlanner
 from abip.risk.scorer import RiskScorer
 from abip.scene.scene_builder import SceneBuilder
 from abip.tracking.yolo_tracker import YOLOTracker
@@ -30,7 +30,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("outputs/videos/decision.mp4"),
+        default=Path("outputs/videos/plan.mp4"),
         help="Path to the output video file",
     )
     parser.add_argument(
@@ -78,17 +78,17 @@ def main() -> None:
             frame_height=metadata.height,
         )
         risk_scorer = RiskScorer()
-        decision_engine = DecisionEngine()
+        planner = BehaviorPlanner()
 
         with VideoWriter(args.output, metadata) as writer:
-            print("\nRunning tracking + scene understanding + risk scoring + decision making...")
+            print("\nRunning tracking + scene understanding + risk scoring + planning...")
             frame_count = 0
 
             for index, frame in reader.frames():
                 frame_tracks = tracker.track(frame_index=index, frame=frame)
                 scene_state = scene_builder.build(frame_tracks)
                 risk_state = risk_scorer.score(scene_state)
-                decision_state = decision_engine.decide(scene_state, risk_state)
+                plan_state = planner.plan(scene_state, risk_state)
 
                 annotated_frame = draw_basic_overlay(
                     frame=frame,
@@ -103,9 +103,9 @@ def main() -> None:
                     frame=annotated_frame,
                     risk_state=risk_state,
                 )
-                annotated_frame = draw_decision_overlay(
+                annotated_frame = draw_plan_overlay(
                     frame=annotated_frame,
-                    decision_state=decision_state,
+                    plan_state=plan_state,
                 )
 
                 writer.write(annotated_frame)
@@ -116,7 +116,7 @@ def main() -> None:
                         f"  Frame {index}: "
                         f"{scene_state.summary} | "
                         f"risk={risk_state.level} ({risk_state.score:.2f}) | "
-                        f"action={decision_state.action} ({decision_state.urgency})"
+                        f"plan={plan_state.maneuver} ({plan_state.urgency})"
                     )
 
             print(f"\nWrote {frame_count} annotated frames to {args.output}")

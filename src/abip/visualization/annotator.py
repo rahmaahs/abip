@@ -5,6 +5,8 @@ from typing import Any
 import cv2
 
 
+
+
 def draw_basic_overlay(frame: Any, frame_index: int, total_frames: int) -> Any:
     """
     Draw a simple status overlay on a video frame.
@@ -240,3 +242,4 @@ def draw_decision_text(frame: Any, decision_state: DecisionState) -> Any:
     )
 
     return frame
+
