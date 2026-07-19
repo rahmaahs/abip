@@ -51,3 +51,51 @@ def draw_basic_overlay(frame: Any, frame_index: int, total_frames: int) -> Any:
     )
 
     return frame
+
+
+from abip.perception.detections import FrameDetections
+
+
+def draw_detections(frame: Any, frame_detections: FrameDetections) -> Any:
+    """
+    Draw detection boxes and labels on a frame.
+    """
+    for detection in frame_detections.detections:
+        box = detection.box
+
+        # Draw the rectangle around the object.
+        cv2.rectangle(
+            frame,
+            (box.x1, box.y1),
+            (box.x2, box.y2),
+            (0, 255, 0),
+            thickness=2,
+        )
+
+        # Create the label text.
+        label = f"{detection.class_name} {detection.confidence:.2f}"
+
+        # Draw a filled box behind the text so it is readable.
+        text_x = box.x1
+        text_y = max(20, box.y1 - 10)
+
+        cv2.rectangle(
+            frame,
+            (text_x, text_y - 22),
+            (text_x + 220, text_y + 5),
+            (0, 255, 0),
+            thickness=-1,
+        )
+
+        cv2.putText(
+            frame,
+            label,
+            (text_x + 5, text_y - 3),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (0, 0, 0),
+            2,
+            cv2.LINE_AA,
+        )
+
+    return frame

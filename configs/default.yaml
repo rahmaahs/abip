@@ -29,3 +29,11 @@ output:
   save_annotated_video: true
   output_dir: "outputs/videos"
   log_dir: "outputs/logs"
+
+perception:
+  enabled: true
+  target_classes:
+    - person
+    - car
+    - bicycle
+  confidence_threshold: 0.35
